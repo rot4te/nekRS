@@ -19,9 +19,7 @@ residualTol = 1e-04
 
 [FLUID VELOCITY]
 # raw boundary IDs (see tallCavityNu.box): 1=hot, 2=cold, 3=top,
-# 4=bottom -- all four no-slip. 5=front/back, symmetry plane (this is
-# a thin-slab stand-in for the paper's quasi-2D domain, not a real
-# wall).
+# 4=bottom -- all four no-slip. 5=front/back, symmetry plane 
 boundaryTypeMap = zeroDirichlet, zeroDirichlet, zeroDirichlet, zeroDirichlet, symy
 rho = 1.0
 viscosity = 1e-5
