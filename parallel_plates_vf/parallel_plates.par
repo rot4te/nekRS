@@ -1,0 +1,38 @@
+[GENERAL]
+polynomialOrder = 5
+stopAt = numSteps
+numSteps = 5
+
+timeStepper = tombo2
+dt = 1e-2
+checkpointInterval = 5
+
+[PRESSURE]
+solver = PFGMRES + nVector = 30
+initialGuess = projection+nVector=30
+smootherType = FourthChebyshev+jac
+residualTol = 1e-4
+maxIterations = 1000
+
+[VELOCITY]
+# boundaryID 1=hot, 2=cold, 3=side (see usrdat2 in parallel_plates.usr).
+# All three are literal solid walls -- no forced flow in this case, it only
+# exists to drive Nek-VF's radiosity solve with the prescribed wall
+# temperatures below (paper Section 4.1). rho/viscosity are placeholders:
+# the paper gives no fluid properties for this radiation-only verification
+# case, since the interior flow/temperature field is irrelevant to the
+# boundary radiosity result.
+boundaryTypeMap = wall, wall, wall
+rho = 1.0
+viscosity = 1e-2
+residualTol = 1e-06
+
+[TEMPERATURE]
+rhoCp = 1000.0
+conductivity = 0.01
+# All three boundaries are Dirichlet (codedFixedValueScalar in
+# parallel_plates.oudf sets 1000K/500K/750K by boundaryID) -- there is no
+# flux-type boundary in this case, unlike tall_cavity_vf_aurora.
+boundaryTypeMap = codedFixedValue, codedFixedValue, codedFixedValue
+residualTol = 1e-06
+maxIterations = 1000

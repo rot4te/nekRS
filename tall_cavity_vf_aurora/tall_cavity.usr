@@ -1,0 +1,118 @@
+      include 'view_factors/view_factors.f'
+C-----------------------------------------------------------------------
+      subroutine userchk()
+      include 'SIZE'
+      include 'TOTAL'
+
+      include "view_factors/VIEW_FACTORS"
+	  
+      character*80  vf_file_name
+      character*80  vf_folder
+
+      real eps,sigma,Cp,rho,U0,T0,f0
+      real fac0
+      integer option
+
+
+      if (nid.eq.0) then 
+       write(6,*) 'VF: initialize radiation heat flux array'
+	   write(6,*) 'VF: and map to device'
+      endif
+
+      if (istep.eq.0)  call rzero(frad(1,1,1,1),ntot)
+      ! map radiation heat flux to udf side.
+      call nekrs_registerPtr('frad', frad)
+
+c read view factors from file
+      if (istep.eq.0) then
+	   vf_file_name = 'vf_tall_cavity'
+      call vf_read_view_factors(vf_file_name)
+c      vf_folder = 'vf_partitioned'
+c      call vf_export_partitioned_vf_files(vf_folder)
+      endif
+
+c      if (istep.eq.0) then
+c      vf_folder = 'vf_partitioned'      
+c      call vf_read_partitioned_vf_files(vf_folder)
+c      endif
+
+c calculate radiation heat flux using view factor model
+
+       T0 = 1.0
+       U0 = 1.0
+       rho = 1.0
+       Cp = 1.0
+       f0 = T0*U0*rho*Cp
+       vf_eps = 1.0
+       vf_sigma =5.67e-8  ! Stefan-Boltzmann constant
+       fac0 = vf_eps*vf_sigma*T0**4.0/f0
+       option = 1
+
+       call vf_calculate_radiation_heat_flux(fac0,option)
+ 
+       call vf_print_radiation_heat_flux(1)
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat   ! This routine to modify element vertices
+      include 'SIZE'      ! _before_ mesh is generated, which 
+      include 'TOTAL'     ! guarantees GLL mapping of mesh.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,eg
+
+      ux = 0.0
+	  uy = 0.0
+	  uz = 0.0
+      temp = 100.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2   ! This routine to modify mesh coordinates
+      include 'SIZE'
+      include 'TOTAL'
+	  
+      integer bc_flag
+      character*80  vf_wall_file_name
+
+
+      do iel=1,nelt
+      do ifc=1,2*ndim
+		 boundaryID(ifc,iel) = 0
+         cbc(ifc,iel,1)  = 'E  '
+         bc_flag = bc(5,ifc,iel,1)
+         if (bc_flag.eq.1) boundaryID(ifc,iel) = 1 
+         if (bc_flag.eq.2) boundaryID(ifc,iel) = 2
+		 if (bc_flag.eq.3) boundaryID(ifc,iel) = 3
+		 if (bc_flag.eq.4) boundaryID(ifc,iel) = 0
+         if (bc_flag.eq.5) boundaryID(ifc,iel) = 0
+
+
+         if (bc_flag.eq.1) cbc(ifc,iel,1) = 'W  '
+         if (bc_flag.eq.2) cbc(ifc,iel,1) = 'W  '
+		 if (bc_flag.eq.3) cbc(ifc,iel,1) = 'W  '
+		 if (bc_flag.eq.4) cbc(ifc,iel,1) = 'P  '
+         if (bc_flag.eq.5) cbc(ifc,iel,1) = 'P  '
+
+      enddo
+      enddo
+
+!  export all boundary face (including wall, inlet, outlet, etc) information for view factor calculation
+! only need once.
+! the reason to export all boundaries is to enforce cloture in view factor calculation for its normalization.
+! 
+!      vf_wall_file_name = 'quads_file_tall_cavity'
+!      call vf_export_all_walls(vf_wall_file_name)
+
+      return
+      end
+c-----------------------------------------------------------------------

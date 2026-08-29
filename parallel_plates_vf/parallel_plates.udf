@@ -1,0 +1,39 @@
+
+#ifdef __okl__
+
+#include "parallel_plates.oudf"
+
+#endif
+
+void UDF_Setup()
+{
+  auto mesh = nrs->mesh;
+
+  nrs->o_usrwrk.resize(1*nrs->fieldOffset);
+
+  std::vector<double> frad(nek::ptr<double>("frad"), nek::ptr<double>("frad") + mesh->Nlocal);
+  nrs->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
+}
+
+void UDF_ExecuteStep(double time, int tstep)
+{
+  auto mesh = nrs->mesh;
+
+  if (nrs->checkpointStep) {
+    nrs->copyToNek(time, tstep);
+    nek::userchk();
+  }
+
+  // Nr=1: re-solve radiosity every step. The wall temperatures are fully
+  // Dirichlet-prescribed (parallel_plates.oudf), so the radiosity system
+  // has converged by the first solve -- there is no flow-radiation
+  // feedback loop to amortize the way tall_cavity_vf_aurora's Nr controls.
+  if ((tstep % 1 == 0) and (tstep > 0)) {
+
+    nrs->copyToNek(time, tstep);
+    nek::userchk();
+
+    std::vector<double> frad(nek::ptr<double>("frad"), nek::ptr<double>("frad") + mesh->Nlocal);
+    nrs->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
+  }
+}

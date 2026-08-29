@@ -1,0 +1,194 @@
+// Concentric-spheres Nek-VF verification case (paper Section 4.2).
+// Cubed-sphere shell mesh: 6 curved hex blocks between r1=0.5 (hot)
+// and r2=1.0 (cold). r1/r2=0.5 is derived from Table II's implied
+// A1/A2=0.25 (paper states neither radius explicitly).
+Mesh.SubdivisionAlgorithm = 0;
+N_ARC = 8;
+N_RAD = 6;
+
+Point(100) = {0, 0, 0};  // sphere center
+Point(101) = {-0.2886751346, -0.2886751346, -0.2886751346};
+Point(102) = {0.2886751346, -0.2886751346, -0.2886751346};
+Point(103) = {0.2886751346, 0.2886751346, -0.2886751346};
+Point(104) = {-0.2886751346, 0.2886751346, -0.2886751346};
+Point(105) = {-0.2886751346, -0.2886751346, 0.2886751346};
+Point(106) = {0.2886751346, -0.2886751346, 0.2886751346};
+Point(107) = {0.2886751346, 0.2886751346, 0.2886751346};
+Point(108) = {-0.2886751346, 0.2886751346, 0.2886751346};
+Point(201) = {-0.5773502692, -0.5773502692, -0.5773502692};
+Point(202) = {0.5773502692, -0.5773502692, -0.5773502692};
+Point(203) = {0.5773502692, 0.5773502692, -0.5773502692};
+Point(204) = {-0.5773502692, 0.5773502692, -0.5773502692};
+Point(205) = {-0.5773502692, -0.5773502692, 0.5773502692};
+Point(206) = {0.5773502692, -0.5773502692, 0.5773502692};
+Point(207) = {0.5773502692, 0.5773502692, 0.5773502692};
+Point(208) = {-0.5773502692, 0.5773502692, 0.5773502692};
+
+Line(301) = {101, 201};
+Line(302) = {102, 202};
+Line(303) = {103, 203};
+Line(304) = {104, 204};
+Line(305) = {105, 205};
+Line(306) = {106, 206};
+Line(307) = {107, 207};
+Line(308) = {108, 208};
+
+Circle(401) = {101, 100, 102};
+Circle(402) = {102, 100, 103};
+Circle(403) = {103, 100, 104};
+Circle(404) = {104, 100, 101};
+Circle(405) = {105, 100, 106};
+Circle(406) = {106, 100, 107};
+Circle(407) = {107, 100, 108};
+Circle(408) = {108, 100, 105};
+Circle(409) = {101, 100, 105};
+Circle(410) = {102, 100, 106};
+Circle(411) = {103, 100, 107};
+Circle(412) = {104, 100, 108};
+Circle(501) = {201, 100, 202};
+Circle(502) = {202, 100, 203};
+Circle(503) = {203, 100, 204};
+Circle(504) = {204, 100, 201};
+Circle(505) = {205, 100, 206};
+Circle(506) = {206, 100, 207};
+Circle(507) = {207, 100, 208};
+Circle(508) = {208, 100, 205};
+Circle(509) = {201, 100, 205};
+Circle(510) = {202, 100, 206};
+Circle(511) = {203, 100, 207};
+Circle(512) = {204, 100, 208};
+
+Transfinite Curve{401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512} = N_ARC;
+Transfinite Curve{301, 302, 303, 304, 305, 306, 307, 308} = N_RAD;
+
+// Inner (hot) and outer (cold) sphere patches, one per cube face
+Line Loop(601) = {401, 402, 403, 404};
+Ruled Surface(801) = {601};
+Line Loop(701) = {501, 502, 503, 504};
+Ruled Surface(901) = {701};
+Transfinite Surface{801};
+Transfinite Surface{901};
+Recombine Surface{801};
+Recombine Surface{901};
+Line Loop(602) = {405, 406, 407, 408};
+Ruled Surface(802) = {602};
+Line Loop(702) = {505, 506, 507, 508};
+Ruled Surface(902) = {702};
+Transfinite Surface{802};
+Transfinite Surface{902};
+Recombine Surface{802};
+Recombine Surface{902};
+Line Loop(603) = {401, 410, -405, -409};
+Ruled Surface(803) = {603};
+Line Loop(703) = {501, 510, -505, -509};
+Ruled Surface(903) = {703};
+Transfinite Surface{803};
+Transfinite Surface{903};
+Recombine Surface{803};
+Recombine Surface{903};
+Line Loop(604) = {-403, 411, 407, -412};
+Ruled Surface(804) = {604};
+Line Loop(704) = {-503, 511, 507, -512};
+Ruled Surface(904) = {704};
+Transfinite Surface{804};
+Transfinite Surface{904};
+Recombine Surface{804};
+Recombine Surface{904};
+Line Loop(605) = {-404, 412, 408, -409};
+Ruled Surface(805) = {605};
+Line Loop(705) = {-504, 512, 508, -509};
+Ruled Surface(905) = {705};
+Transfinite Surface{805};
+Transfinite Surface{905};
+Recombine Surface{805};
+Recombine Surface{905};
+Line Loop(606) = {402, 411, -406, -410};
+Ruled Surface(806) = {606};
+Line Loop(706) = {502, 511, -506, -510};
+Ruled Surface(906) = {706};
+Transfinite Surface{806};
+Transfinite Surface{906};
+Recombine Surface{806};
+Recombine Surface{906};
+
+// 12 radial 'fin' side surfaces, one per cube edge, shared between
+// the two hex blocks (cube faces) that meet at that edge.
+Line Loop(1001) = {401, 302, -501, -301};
+Ruled Surface(1101) = {1001};
+Transfinite Surface{1101};
+Recombine Surface{1101};
+Line Loop(1002) = {402, 303, -502, -302};
+Ruled Surface(1102) = {1002};
+Transfinite Surface{1102};
+Recombine Surface{1102};
+Line Loop(1003) = {403, 304, -503, -303};
+Ruled Surface(1103) = {1003};
+Transfinite Surface{1103};
+Recombine Surface{1103};
+Line Loop(1004) = {404, 301, -504, -304};
+Ruled Surface(1104) = {1004};
+Transfinite Surface{1104};
+Recombine Surface{1104};
+Line Loop(1005) = {405, 306, -505, -305};
+Ruled Surface(1105) = {1005};
+Transfinite Surface{1105};
+Recombine Surface{1105};
+Line Loop(1006) = {406, 307, -506, -306};
+Ruled Surface(1106) = {1006};
+Transfinite Surface{1106};
+Recombine Surface{1106};
+Line Loop(1007) = {407, 308, -507, -307};
+Ruled Surface(1107) = {1007};
+Transfinite Surface{1107};
+Recombine Surface{1107};
+Line Loop(1008) = {408, 305, -508, -308};
+Ruled Surface(1108) = {1008};
+Transfinite Surface{1108};
+Recombine Surface{1108};
+Line Loop(1009) = {409, 305, -509, -301};
+Ruled Surface(1109) = {1009};
+Transfinite Surface{1109};
+Recombine Surface{1109};
+Line Loop(1010) = {410, 306, -510, -302};
+Ruled Surface(1110) = {1010};
+Transfinite Surface{1110};
+Recombine Surface{1110};
+Line Loop(1011) = {411, 307, -511, -303};
+Ruled Surface(1111) = {1011};
+Transfinite Surface{1111};
+Recombine Surface{1111};
+Line Loop(1012) = {412, 308, -512, -304};
+Ruled Surface(1112) = {1012};
+Transfinite Surface{1112};
+Recombine Surface{1112};
+
+// 6 hex volumes, one per cube face, bounded by its inner patch,
+// outer patch, and its 4 (shared) side patches.
+Surface Loop(1201) = {801, 901, 1101, 1102, 1103, 1104};
+Volume(1301) = {1201};
+Transfinite Volume{1301};
+Recombine Volume{1301};
+Surface Loop(1202) = {802, 902, 1105, 1106, 1107, 1108};
+Volume(1302) = {1202};
+Transfinite Volume{1302};
+Recombine Volume{1302};
+Surface Loop(1203) = {803, 903, 1101, 1110, 1105, 1109};
+Volume(1303) = {1203};
+Transfinite Volume{1303};
+Recombine Volume{1303};
+Surface Loop(1204) = {804, 904, 1103, 1111, 1107, 1112};
+Volume(1304) = {1204};
+Transfinite Volume{1304};
+Recombine Volume{1304};
+Surface Loop(1205) = {805, 905, 1104, 1112, 1108, 1109};
+Volume(1305) = {1205};
+Transfinite Volume{1305};
+Recombine Volume{1305};
+Surface Loop(1206) = {806, 906, 1102, 1111, 1106, 1110};
+Volume(1306) = {1206};
+Transfinite Volume{1306};
+Recombine Volume{1306};
+
+Physical Surface("hot", 1) = {801, 802, 803, 804, 805, 806};
+Physical Surface("cold", 2) = {901, 902, 903, 904, 905, 906};
+Physical Volume("fluid", 3) = {1301, 1302, 1303, 1304, 1305, 1306};

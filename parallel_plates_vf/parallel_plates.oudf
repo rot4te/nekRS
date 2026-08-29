@@ -1,0 +1,45 @@
+// OKL kernels for the parallel-plates Nek-VF verification case.
+// All three boundaries are Dirichlet-temperature literal walls (paper
+// Table I) -- there is no flux/radiative-coupling boundary here, so unlike
+// tall_cavity_vf_aurora's oudf, codedFixedGradientScalar is not needed: the
+// radiative heat flux at each wall is a pure diagnostic read out of
+// vf_calculate_radiation_heat_flux via userchk, not fed back into the
+// energy equation as a BC. codedFixedValueVelocity is also unneeded since
+// [VELOCITY] boundaryTypeMap uses the native "wall" (no-slip) type
+// everywhere, not a coded one.
+
+void codedFixedValueScalar(bcData *bc)
+{
+  // boundaryID 1=hot (1000K), 2=cold (500K), 3=side (750K) -- see usrdat2
+  // in parallel_plates.usr for the Physical Surface -> boundaryID mapping.
+  if (bc->id == 1) {
+    bc->s = 1000.0;
+  } else if (bc->id == 2) {
+    bc->s = 500.0;
+  } else {
+    bc->s = 750.0;
+  }
+}
+
+@kernel void fillProp(const dlong Nelements,
+                      const dlong uOffset,
+                      const dlong sOffset,
+                      @ restrict const dfloat *TEMP,
+                      @ restrict dfloat *UPROP,
+                      @ restrict dfloat *SPROP)
+{
+  for (dlong e = 0; e < Nelements; ++e; @outer(0)) {
+    for (int n = 0; n < p_Np; ++n; @inner(0)) {
+    const int id = e * p_Np + n;
+
+    // Placeholders -- see the [VELOCITY]/[TEMPERATURE] comments in
+    // parallel_plates.par: this case's interior field is not physically
+    // meaningful, only the Dirichlet-driven boundary radiosity result is.
+    UPROP[id + 0 * uOffset] = 1e-2;   // viscosity
+    SPROP[id + 0 * sOffset] = 0.01;   // conductivity
+
+    UPROP[id + 1 * uOffset] = 1.0;    // rho
+    SPROP[id + 1 * sOffset] = 1000.0; // rhoCp
+    }
+  }
+}

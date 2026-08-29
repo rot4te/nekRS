@@ -1,0 +1,105 @@
+      include 'view_factors/view_factors.f'
+C-----------------------------------------------------------------------
+      subroutine userchk()
+      include 'SIZE'
+      include 'TOTAL'
+
+      include "view_factors/VIEW_FACTORS"
+
+      character*80  vf_file_name
+
+      real eps,sigma,Cp,rho,U0,T0,f0
+      real fac0
+      integer option
+
+      if (istep.eq.0)  call rzero(frad(1,1,1,1),ntot)
+      call nekrs_registerPtr('frad', frad)
+
+c read view factors computed offline via the nek-vf-case skill's
+c compute_view_factors.jl driver (RadiativeViewFactor.jl), not hemicubevf
+      if (istep.eq.0) then
+       vf_file_name = 'vf_parallel_plates'
+       call vf_read_view_factors(vf_file_name)
+      endif
+
+c fac0/T0/U0/rho/Cp: no rescaling -- temperatures below are real Kelvin and
+c vf_sigma is the real Stefan-Boltzmann constant, so T0=U0=rho=Cp=1.0 (see
+c the nek-vf-case skill's case.usr.template comment on this convention).
+       T0 = 1.0
+       U0 = 1.0
+       rho = 1.0
+       Cp = 1.0
+       f0 = T0*U0*rho*Cp
+       vf_eps = 0.85
+       vf_sigma = 5.67e-8
+       fac0 = vf_eps*vf_sigma*T0**4.0/f0
+c option=1: only relevant to non-wall (periodic/inlet/outlet) boundaries,
+c of which this closed 3-surface enclosure has none -- kept at 1 for
+c consistency with the other nek-vf-case-generated cases.
+       option = 1
+
+       call vf_calculate_radiation_heat_flux(fac0,option)
+
+c report radiative flux on all three boundaries (paper Table I: hot, cold,
+c side) -- unlike the single-flux-wall tall_cavity case, this case's
+c verification target is all three walls, not just one.
+       call vf_print_radiation_heat_flux(1)
+       call vf_print_radiation_heat_flux(2)
+       call vf_print_radiation_heat_flux(3)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat()
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,eg
+
+      ux = 0.0
+      uy = 0.0
+      uz = 0.0
+      temp = 750.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer bc_flag
+
+c Physical Surface tags from parallel_plates.geo: 1=hot, 2=cold, 3=side.
+c All three are literal solid walls (cbc='W  '); boundaryID matches the
+c [VELOCITY]/[TEMPERATURE] boundaryTypeMap order in parallel_plates.par.
+      do iel=1,nelt
+      do ifc=1,2*ndim
+         boundaryID(ifc,iel) = 0
+         cbc(ifc,iel,1)  = 'E  '
+         bc_flag = bc(5,ifc,iel,1)
+
+         if (bc_flag.eq.1) then
+            boundaryID(ifc,iel) = 1
+            cbc(ifc,iel,1) = 'W  '
+         elseif (bc_flag.eq.2) then
+            boundaryID(ifc,iel) = 2
+            cbc(ifc,iel,1) = 'W  '
+         elseif (bc_flag.eq.3) then
+            boundaryID(ifc,iel) = 3
+            cbc(ifc,iel,1) = 'W  '
+         endif
+
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
