@@ -92,6 +92,20 @@ Dirichlet walls). See `examples.md` for how it's built and
 `radiative_heat_transfer_in_nekRS.md` for the coupling mechanism it
 exercises.
 
+### `examples/singlePebble/`
+Reproduces Yuan et al. Sec 4.4 (flow around a single pebble): forced
+convection through a square duct past a heated spherical pebble, with
+the pebble/duct-wall surfaces radiatively coupled and the inlet/outlet
+set to emissivity=0 (mirror BC), matching the paper. First case with a
+real inlet/outlet duct flow (not natural convection or a pure
+diagnostic) and a curved obstacle meshed with a two-shell "cubed
+sphere" `gmsh` generator (`make_mesh.py`, generalizing
+`concentricSpheres/make_mesh.py` from one shell to two nested shells:
+pebble->collar, collar->duct). See `singlePebble/singlePebble.md` for
+the mesh construction, derived properties, and assumptions where the
+paper underspecifies the setup (side-wall thermal BC, outlet BC, mesh
+resolution).
+
 ## Documentation (new)
 
 - `rvf-dev.md` — file-by-file summary of the original (pre-coupling)

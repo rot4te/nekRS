@@ -1,0 +1,91 @@
+c-----------------------------------------------------------------------
+c  singlePebble user-file: mesh comes from gmsh2nek (see make_mesh.py),
+c  which writes the Physical Surface tag directly into the .re2's
+c  bc(5,...) slot, so nekRS's boundary-ID import picks it up with no
+c  manual usrdat2() fix needed (same situation as
+c  examples/concentricSpheres/concentricSpheres.usr; contrast the
+c  genbox-based examples/tallCavityNu.usr, which does need one). This
+c  file is the plain zero.usr template.
+c-----------------------------------------------------------------------
+      subroutine uservp(ix,iy,iz,eg)
+      integer ix,iy,iz,eg
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      udiff  = 0.0
+      utrans = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf(ix,iy,iz,eg)
+      integer ix,iy,iz,eg
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq(ix,iy,iz,eg)
+      integer ix,iy,iz,eg
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      qvol   = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc(ix,iy,iz,iside,eg)
+      integer ix,iy,iz,iside,eg
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux   = 0.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg)
+      integer ix,iy,iz,eg
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux   = 0.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk()
+      include 'SIZE'
+      include 'TOTAL'
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userqtl
+      call userqtl_scig
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat()
+      include 'SIZE'
+      include 'TOTAL'
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()
+      include 'SIZE'
+      include 'TOTAL'
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3()
+      include 'SIZE'
+      include 'TOTAL'
+      return
+      end

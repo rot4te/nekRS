@@ -1,0 +1,66 @@
+#include "Radiation.hpp"
+
+#ifdef __okl__
+
+void udfDirichlet(bcData *bc)
+{
+  // Raw boundary IDs (see singlePebble.par comments): 1=pebble, 2=duct
+  // walls, 3=inlet, 4=outlet.
+  if (isField("fluid velocity")) {
+    // bID 3 = inlet: uniform axial (+z, duct axis) velocity, derived from
+    // Re=20 with the pebble diameter D=0.04m as the characteristic length
+    // (Table IV): U = Re*mu/(rho*D) = 20*6.5e-5/(0.353*0.04) = 0.09207 m/s.
+    if (bc->id == 3) {
+      const dfloat uIn = 0.09207;
+      bc->uxFluid = 0.0;
+      bc->uyFluid = 0.0;
+      bc->uzFluid = uIn;
+    }
+  } else if (isField("scalar temperature")) {
+    // bID 3 = inlet, fixed T=1000K (Table IV Tin).
+    if (bc->id == 3) {
+      bc->sScalar = 1000.0;
+    }
+  }
+}
+
+void udfNeumann(bcData *bc)
+{
+  // Radiative-convective coupling: the flux actually entering the fluid is
+  // the externally applied flux minus whatever net flux the surface is
+  // losing to radiation (bc->usrwrk, written by Radiation::step(), positive
+  // = net radiator). bID 1 = pebble, applied flux f=374 W/m^2 (Table IV).
+  // bID 2 = duct walls, applied flux 0 ("adiabatic" in the paper's sense:
+  // no EXTERNAL flux, but still radiatively active -- a floating
+  // reradiating surface), same mechanism as tallCavityNu's top/bottom.
+  if (isField("scalar temperature")) {
+    dfloat appliedFlux = 0.0;
+    if (bc->id == 1) {
+      appliedFlux = 374.0;
+    }
+    bc->fluxScalar = appliedFlux - bc->usrwrk[bc->idxVol];
+  }
+}
+
+#endif
+
+void UDF_Setup()
+{
+  auto mesh = nrs->meshV;
+  Radiation::setup();
+  if (platform->options.getArgs("RESTART FILE NAME").empty()) {
+    // Start from rest at the inlet temperature -- avoids a large initial
+    // thermal shock at the pebble surface (which sees T=1000K air from t=0
+    // regardless), and matches tallCavityNu's "uniform IC at the dominant
+    // boundary temperature" convention.
+    std::vector<dfloat> U(mesh->dim * nrs->fieldOffset, 0.0);
+    std::vector<dfloat> S(mesh->Nlocal, 1000.0);
+    nrs->fluid->o_U.copyFrom(U.data(), U.size());
+    nrs->scalar->o_S.copyFrom(S.data(), S.size());
+  }
+}
+
+void UDF_ExecuteStep(double time, int tstep)
+{
+  Radiation::step(time, tstep);
+}

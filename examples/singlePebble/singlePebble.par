@@ -1,0 +1,77 @@
+[GENERAL]
+polynomialOrder = 7
+stopAt = endTime
+# ~3x the thermal-diffusion time scale L^2/alpha (alpha=k/(rho*Cp)=2.2e-4
+# m^2/s, L=duct half-width 0.04m -> ~7.2s) so the coupled flow+temperature
+# field has a real chance to approach a quasi-steady state; extend/monitor
+# as needed -- see singlePebble.md for the full estimate.
+endTime = 30
+
+timeStepper = tombo2
+dt = targetCFL=2.0 + max=0.02 + initial=1e-3
+
+checkpointControl = simulationTime
+checkpointInterval = 5
+
+regularization = hpfrt + nModes=1 + scalingCoeff=10
+
+scalars = TEMPERATURE
+
+[FLUID PRESSURE]
+residualTol = 1e-06
+
+[FLUID VELOCITY]
+# raw boundary IDs (see make_mesh.py / singlePebble.msh Physical Surfaces):
+# 1=pebble, 2=duct side walls, 3=inlet, 4=outlet. Both solid surfaces
+# no-slip; inlet gets a uniform axial velocity (udfDirichlet, set from
+# Re=20 in singlePebble.udf); outlet is a plain outflow.
+boundaryTypeMap = zeroDirichlet, zeroDirichlet, udfDirichlet, zeroNeumann
+rho = 0.353
+viscosity = 6.5e-5
+residualTol = 1e-08
+
+[SCALAR TEMPERATURE]
+# 1=pebble: applied flux f=374 W/m^2 (Table IV) MINUS net radiative loss
+# (real radiative-convective coupling via Radiation::step()'s o_usrwrk, see
+# singlePebble.udf) -- same udfNeumann mechanism as tallCavityNu's hot wall.
+# 2=duct walls: "adiabatic" (zero APPLIED flux) but still radiatively
+# active -- a floating reradiating surface, same mechanism with
+# appliedFlux=0 (matches tallCavityNu's top/bottom treatment; the paper's
+# Sec 4.4 doesn't state the side-wall thermal BC explicitly, and this is
+# the natural reading of Fig. 8's "adiabatic boundary condition due to the
+# side wall" caption). 3=inlet: fixed T=1000K (Table IV Tin). 4=outlet:
+# plain outflow (zero-gradient).
+boundaryTypeMap = udfNeumann, udfNeumann, udfDirichlet, zeroNeumann
+diffusionCoeff = 0.09
+transportCoeff = 406.17
+residualTol = 1e-08
+
+[RADIATION]
+# All 4 boundary IDs must be listed here even though inlet/outlet don't
+# physically radiate -- the Monte Carlo ray tracer needs a geometrically
+# CLOSED enclosure (see tallCavityNu.par's front/back-symmetry-plane
+# lesson); emissivity=0 for inlet/outlet reproduces the paper's own
+# treatment ("emissivities of both the inlet and outlet boundaries are set
+# to zero...a perfectly reflecting (mirror) boundary condition").
+radiatingBoundaryIDs = 1,2,3,4
+# The pebble sits inside the duct and blocks direct wall-to-wall visibility
+# through its own volume (e.g. a patch on the near side of the duct wall
+# can't see straight through the pebble to a patch on the far side) --
+# same reasoning as concentricSpheres' obstructionBoundaryIDs, generalized
+# from "concave surface occludes itself" to "convex obstacle occludes
+# other surfaces". The duct walls themselves are flat and don't need to
+# occlude each other.
+obstructionBoundaryIDs = 1
+nSamples = 16384
+seed = 1234
+writeMatrix = true
+cache = true
+emissivity = 0.85,0.85,0.0,0.0
+# Radiosity update frequency Nr: paper's Table VI scans Nr=1/10/50
+# (620%/86%/12% overhead vs. no-radiation). Nr=10 is chosen as a
+# middle-ground default for this demo case -- tight enough to keep the
+# radiative and convective fields well coupled, without paying the Nr=1
+# overhead every flow step. Lower for tighter coupling fidelity, raise
+# (e.g. towards 50) once the flow is closer to steady state and radiative
+# transients matter less.
+updateFrequency = 10
