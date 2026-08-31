@@ -3,8 +3,8 @@
 // and r2=1.0 (cold). r1/r2=0.5 is derived from Table II's implied
 // A1/A2=0.25 (paper states neither radius explicitly).
 Mesh.SubdivisionAlgorithm = 0;
-N_ARC = 8;
-N_RAD = 6;
+N_ARC = 16;
+N_RAD = 4;
 
 Point(100) = {0, 0, 0};  // sphere center
 Point(101) = {-0.2886751346, -0.2886751346, -0.2886751346};

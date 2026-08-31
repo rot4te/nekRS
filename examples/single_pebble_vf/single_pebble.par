@@ -1,0 +1,39 @@
+[GENERAL]
+polynomialOrder = 7
+stopAt = numSteps
+numSteps = 2000
+timeStepper = tombo2
+dt = 1e-3
+checkpointInterval = 500
+
+[PRESSURE]
+solver = PFGMRES + nVector = 30
+initialGuess = projection+nVector=30
+smootherType = FourthChebyshev+jac
+residualTol = 1e-4
+maxIterations = 1000
+
+[VELOCITY]
+# boundaryID 1=pebble, 2=inlet, 3=outlet, 4=duct_wall -- see usrdat2 in
+# single_pebble.usr. "inlet" (not "codedFixedValue") is this NekRS build's
+# actual keyword for a coded Dirichlet condition -- see the note in
+# parallel_plates.par about this checked-out source's boundaryTypeMap
+# table (src/core/bdry/bdryBase.cpp).
+boundaryTypeMap = wall, inlet, outlet, wall
+rho = 0.353
+viscosity = 6.5e-5
+residualTol = 1e-06
+
+[TEMPERATURE]
+# rhoCp = rho*Cp, Cp = Pr*kappa/mu (Table IV gives kappa, rho, mu, Pr, not
+# Cp directly): Cp = 0.831*0.09/6.5e-5 = 1150.6 J/(kg-K),
+# rhoCp = 0.353*1150.6 = 406.17 J/(m3-K).
+rhoCp = 406.17
+conductivity = 0.09
+# pebble: flux (374 W/m2 imposed + radiative exchange, codedFixedGradientScalar).
+# inlet: Dirichlet 1000 K (codedFixedValueScalar).
+# outlet: outflow (zero-gradient).
+# duct_wall: flux (radiative exchange only, no imposed generation).
+boundaryTypeMap = flux, inlet, outlet, flux
+residualTol = 1e-06
+maxIterations = 1000

@@ -1,0 +1,40 @@
+
+#ifdef __okl__
+
+#include "single_pebble.oudf"
+
+#endif
+
+void UDF_Setup()
+{
+  auto mesh = nrs->mesh;
+
+  nrs->o_usrwrk.resize(1*nrs->fieldOffset);
+
+  std::vector<double> frad(nek::ptr<double>("frad"), nek::ptr<double>("frad") + mesh->Nlocal);
+  nrs->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
+}
+
+void UDF_ExecuteStep(double time, int tstep)
+{
+  auto mesh = nrs->mesh;
+
+  if (nrs->checkpointStep) {
+    nrs->copyToNek(time, tstep);
+    nek::userchk();
+  }
+
+  // Radiosity update frequency Nr: paper Section 5's overhead study (same
+  // duct/pebble geometry, finer mesh) found Nr=1 costs ~620% overhead,
+  // Nr=10 ~86%, Nr=50 ~12%. Nr=10 below is a starting point balancing
+  // accuracy and cost; raise it if radiation-flow coupling is weak enough
+  // at this Reynolds number to tolerate a longer lag.
+  if ((tstep % 10 == 0) and (tstep > 0)) {
+
+    nrs->copyToNek(time, tstep);
+    nek::userchk();
+
+    std::vector<double> frad(nek::ptr<double>("frad"), nek::ptr<double>("frad") + mesh->Nlocal);
+    nrs->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
+  }
+}

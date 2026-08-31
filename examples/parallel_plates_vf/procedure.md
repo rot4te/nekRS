@@ -91,7 +91,7 @@ This case is a stripped-down instance of the same Nek-VF wiring documented
 in `tall_cavity_vf_aurora/procedure.md`, with two simplifications specific
 to a radiation-only verification case:
 
-1. **No flux-type boundary.** All three walls are `codedFixedValue`
+1. **No flux-type boundary.** All three walls are `udfDirichlet`
    (Dirichlet) in `[TEMPERATURE] boundaryTypeMap` — there is no
    `codedFixedGradientScalar` in `parallel_plates.oudf` at all, because no
    boundary needs `frad` fed back into the energy equation as a BC. The

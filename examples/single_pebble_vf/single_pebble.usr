@@ -1,0 +1,115 @@
+      include 'view_factors/view_factors.f'
+C-----------------------------------------------------------------------
+      subroutine userchk()
+      include 'SIZE'
+      include 'TOTAL'
+
+      include "view_factors/VIEW_FACTORS"
+
+      character*80  vf_file_name
+
+      real eps,sigma,Cp,rho,U0,T0,f0
+      real fac0
+      integer option
+
+      if (istep.eq.0)  call rzero(frad(1,1,1,1),ntot)
+      call nekrs_registerPtr('frad', frad)
+
+c read view factors computed offline via the nek-vf-case skill's
+c compute_view_factors.jl driver (RadiativeViewFactor.jl), not hemicubevf.
+c Obstruction was essential here too: the pebble blocks direct radiative
+c view between opposite duct-wall patches (computed via --obstruction=1,
+c the pebble's Physical Surface tag).
+      if (istep.eq.0) then
+       vf_file_name = 'vf_single_pebble'
+       call vf_read_view_factors(vf_file_name)
+      endif
+
+c fac0/T0/U0/rho/Cp: no rescaling -- temperatures are real Kelvin and
+c vf_sigma is the real Stefan-Boltzmann constant (see parallel_plates.usr's
+c comment on this convention).
+       T0 = 1.0
+       U0 = 1.0
+       rho = 1.0
+       Cp = 1.0
+       f0 = T0*U0*rho*Cp
+       vf_eps = 0.85
+       vf_sigma = 5.67e-8
+c option=1: inlet/outlet (cbc.ne.'W') reflect ideally rather than
+c absorbing/emitting -- matches the paper's "perfectly reflecting (mirror)
+c boundary condition...commonly adopted for open boundaries" treatment of
+c zero-emissivity inlet/outlet (paper Section 4.4). This falls out
+c automatically from view_factors.f's indicator_real_wall_ef, which is set
+c from cbc alone (1.0 only for cbc='W  ', 0.0 otherwise) -- no separate
+c per-boundary emissivity mechanism is needed for this case.
+       fac0 = vf_eps*vf_sigma*T0**4.0/f0
+       option = 1
+
+       call vf_calculate_radiation_heat_flux(fac0,option)
+
+c report radiative flux on the pebble (boundaryID 1) -- the paper's
+c Nusselt-number comparisons (Table V) are based on pebble surface
+c temperature.
+       call vf_print_radiation_heat_flux(1)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat()
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,eg
+
+      ux = 0.0
+      uy = 0.0
+      uz = 0.0
+      temp = 1000.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer bc_flag
+
+c Physical Surface tags from single_pebble.geo: 1=pebble, 2=inlet,
+c 3=outlet, 4=duct_wall. Pebble and duct walls are literal solid walls
+c (cbc='W  '); inlet/outlet get NekRS's native velocity-inlet/outflow
+c codes, which is what makes view_factors.f treat them as non-emitting
+c (indicator_real_wall_ef=0) -- see the userchk() comment above.
+      do iel=1,nelt
+      do ifc=1,2*ndim
+         boundaryID(ifc,iel) = 0
+         cbc(ifc,iel,1)  = 'E  '
+         bc_flag = bc(5,ifc,iel,1)
+
+         if (bc_flag.eq.1) then
+            boundaryID(ifc,iel) = 1
+            cbc(ifc,iel,1) = 'W  '
+         elseif (bc_flag.eq.2) then
+            boundaryID(ifc,iel) = 2
+            cbc(ifc,iel,1) = 'v  '
+         elseif (bc_flag.eq.3) then
+            boundaryID(ifc,iel) = 3
+            cbc(ifc,iel,1) = 'O  '
+         elseif (bc_flag.eq.4) then
+            boundaryID(ifc,iel) = 4
+            cbc(ifc,iel,1) = 'W  '
+         endif
+
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------

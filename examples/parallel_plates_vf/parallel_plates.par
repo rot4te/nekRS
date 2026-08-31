@@ -30,9 +30,16 @@ residualTol = 1e-06
 [TEMPERATURE]
 rhoCp = 1000.0
 conductivity = 0.01
-# All three boundaries are Dirichlet (codedFixedValueScalar in
-# parallel_plates.oudf sets 1000K/500K/750K by boundaryID) -- there is no
-# flux-type boundary in this case, unlike tall_cavity_vf_aurora.
-boundaryTypeMap = codedFixedValue, codedFixedValue, codedFixedValue
+# All three boundaries are Dirichlet ("udfDirichlet" routes to
+# codedFixedValueScalar in parallel_plates.oudf, which sets 1000K/500K/750K
+# by boundaryID) -- there is no flux-type boundary in this case, unlike
+# tall_cavity_vf_aurora. NOTE: tall_cavity_vf_aurora's own .par uses
+# "codedFixedValue" here, which is not a recognized boundaryTypeMap keyword
+# in this checked-out NekRS source (src/core/bdry/bdryBase.cpp's
+# sBcTextToID/alias table has no such entry -- only "udfDirichlet" and its
+# aliases "inlet"/"t"); it may reflect an older/Aurora-specific NekRS
+# keyword. Use "udfDirichlet" here to match the currently-checked-out
+# source this case would actually be built against.
+boundaryTypeMap = udfDirichlet, udfDirichlet, udfDirichlet
 residualTol = 1e-06
 maxIterations = 1000

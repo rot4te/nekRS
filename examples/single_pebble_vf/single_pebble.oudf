@@ -1,0 +1,38 @@
+// OKL kernels for the single-pebble Nek-VF case (paper Section 4.4).
+// Flow direction is +z (inlet at z=-Lz, outlet at z=+Lz -- see
+// single_pebble.geo / usrdat2 in single_pebble.usr).
+
+void codedFixedValueVelocity(bcData *bc)
+{
+  // Uniform inlet velocity (boundaryID 2). Re=20 with Table IV's
+  // properties and the duct's 8cm side gives U0 = Re*mu/(rho*L) =
+  // 0.046034 m/s (single_pebble.par's [VELOCITY] comment).
+  bc->u = 0.0;
+  bc->v = 0.0;
+  bc->w = 0.046034;
+}
+
+void codedFixedValueScalar(bcData *bc)
+{
+  // Inlet temperature (boundaryID 2): Table IV, Tin = 1000 K.
+  bc->s = 1000.0;
+}
+
+void codedFixedGradientScalar(bcData *bc)
+{
+  // bc->usrwrk is frad (view_factors.f's vf_calculate_radiation_heat_flux
+  // output), uploaded from single_pebble.udf. Positive gflux = radiative
+  // loss from this wall into the enclosure (see the tall_cavity_vf_aurora
+  // convention this case reuses).
+  dfloat gflux;
+  gflux = bc->usrwrk[bc->idM + 0 * bc->fieldOffset];
+
+  if (bc->id == 1) {
+    // Pebble (boundaryID 1): Table IV imposed surface heat flux
+    // (374 W/m2, generation into the fluid) plus radiative exchange.
+    bc->flux = 374.0 - gflux;
+  } else {
+    // Duct side walls (boundaryID 4): adiabatic except for radiation.
+    bc->flux = 0.0 - gflux;
+  }
+}

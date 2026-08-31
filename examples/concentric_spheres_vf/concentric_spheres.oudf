@@ -1,0 +1,41 @@
+// OKL kernels for the concentric-spheres Nek-VF verification case.
+// Both boundaries are Dirichlet-temperature literal walls (paper Table II)
+// -- as in parallel_plates_vf, there is no flux/radiative-coupling
+// boundary, so codedFixedGradientScalar is unneeded: radiative flux is a
+// pure diagnostic read via vf_print_radiation_heat_flux in userchk, not
+// fed back as a BC. codedFixedValueVelocity is also unneeded since
+// [VELOCITY] boundaryTypeMap uses the native "wall" (no-slip) type.
+
+void codedFixedValueScalar(bcData *bc)
+{
+  // boundaryID 1=hot (inner sphere, 1000K), 2=cold (outer sphere, 500K) --
+  // see usrdat2 in concentric_spheres.usr.
+  if (bc->id == 1) {
+    bc->s = 1000.0;
+  } else {
+    bc->s = 500.0;
+  }
+}
+
+@kernel void fillProp(const dlong Nelements,
+                      const dlong uOffset,
+                      const dlong sOffset,
+                      @ restrict const dfloat *TEMP,
+                      @ restrict dfloat *UPROP,
+                      @ restrict dfloat *SPROP)
+{
+  for (dlong e = 0; e < Nelements; ++e; @outer(0)) {
+    for (int n = 0; n < p_Np; ++n; @inner(0)) {
+    const int id = e * p_Np + n;
+
+    // Placeholders -- see [VELOCITY]/[TEMPERATURE] comments in
+    // concentric_spheres.par: only the Dirichlet-driven boundary radiosity
+    // result is physically meaningful in this verification case.
+    UPROP[id + 0 * uOffset] = 1e-2;   // viscosity
+    SPROP[id + 0 * sOffset] = 0.01;   // conductivity
+
+    UPROP[id + 1 * uOffset] = 1.0;    // rho
+    SPROP[id + 1 * sOffset] = 1000.0; // rhoCp
+    }
+  }
+}

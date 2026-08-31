@@ -1,0 +1,275 @@
+// Single-pebble Nek-VF case (paper Section 4.4): square duct with a
+// spherical pebble at the center. Two-layer cubed-sphere/cubed-box
+// O-grid -- see the header of the generating script for the topology.
+Mesh.SubdivisionAlgorithm = 0;
+N_ARC = 7;  N_RAD1 = 5;  N_RAD2 = 8;
+
+Point(1000) = {0, 0, 0};  // origin
+Point(101) = {-0.0115470054, -0.0115470054, -0.0115470054};
+Point(102) = {0.0115470054, -0.0115470054, -0.0115470054};
+Point(103) = {0.0115470054, 0.0115470054, -0.0115470054};
+Point(104) = {-0.0115470054, 0.0115470054, -0.0115470054};
+Point(105) = {-0.0115470054, -0.0115470054, 0.0115470054};
+Point(106) = {0.0115470054, -0.0115470054, 0.0115470054};
+Point(107) = {0.0115470054, 0.0115470054, 0.0115470054};
+Point(108) = {-0.0115470054, 0.0115470054, 0.0115470054};
+Point(201) = {-0.0200000000, -0.0200000000, -0.0200000000};
+Point(202) = {0.0200000000, -0.0200000000, -0.0200000000};
+Point(203) = {0.0200000000, 0.0200000000, -0.0200000000};
+Point(204) = {-0.0200000000, 0.0200000000, -0.0200000000};
+Point(205) = {-0.0200000000, -0.0200000000, 0.0200000000};
+Point(206) = {0.0200000000, -0.0200000000, 0.0200000000};
+Point(207) = {0.0200000000, 0.0200000000, 0.0200000000};
+Point(208) = {-0.0200000000, 0.0200000000, 0.0200000000};
+Point(301) = {-0.0400000000, -0.0400000000, -0.0800000000};
+Point(302) = {0.0400000000, -0.0400000000, -0.0800000000};
+Point(303) = {0.0400000000, 0.0400000000, -0.0800000000};
+Point(304) = {-0.0400000000, 0.0400000000, -0.0800000000};
+Point(305) = {-0.0400000000, -0.0400000000, 0.0800000000};
+Point(306) = {0.0400000000, -0.0400000000, 0.0800000000};
+Point(307) = {0.0400000000, 0.0400000000, 0.0800000000};
+Point(308) = {-0.0400000000, 0.0400000000, 0.0800000000};
+
+// Layer 1 radial spokes: sphere corner -> reference-cube corner
+Line(401) = {101, 201};
+Line(402) = {102, 202};
+Line(403) = {103, 203};
+Line(404) = {104, 204};
+Line(405) = {105, 205};
+Line(406) = {106, 206};
+Line(407) = {107, 207};
+Line(408) = {108, 208};
+// Layer 2 radial spokes: reference-cube corner -> duct-box corner
+Line(501) = {201, 301};
+Line(502) = {202, 302};
+Line(503) = {203, 303};
+Line(504) = {204, 304};
+Line(505) = {205, 305};
+Line(506) = {206, 306};
+Line(507) = {207, 307};
+Line(508) = {208, 308};
+
+// Sphere edges (great-circle arcs) and reference-cube edges (straight)
+Circle(601) = {101, 1000, 102};
+Circle(602) = {102, 1000, 103};
+Circle(603) = {103, 1000, 104};
+Circle(604) = {104, 1000, 101};
+Circle(605) = {105, 1000, 106};
+Circle(606) = {106, 1000, 107};
+Circle(607) = {107, 1000, 108};
+Circle(608) = {108, 1000, 105};
+Circle(609) = {101, 1000, 105};
+Circle(610) = {102, 1000, 106};
+Circle(611) = {103, 1000, 107};
+Circle(612) = {104, 1000, 108};
+Line(701) = {201, 202};
+Line(702) = {202, 203};
+Line(703) = {203, 204};
+Line(704) = {204, 201};
+Line(705) = {205, 206};
+Line(706) = {206, 207};
+Line(707) = {207, 208};
+Line(708) = {208, 205};
+Line(709) = {201, 205};
+Line(710) = {202, 206};
+Line(711) = {203, 207};
+Line(712) = {204, 208};
+// Duct-box edges (straight)
+Line(801) = {301, 302};
+Line(802) = {302, 303};
+Line(803) = {303, 304};
+Line(804) = {304, 301};
+Line(805) = {305, 306};
+Line(806) = {306, 307};
+Line(807) = {307, 308};
+Line(808) = {308, 305};
+Line(809) = {301, 305};
+Line(810) = {302, 306};
+Line(811) = {303, 307};
+Line(812) = {304, 308};
+
+Transfinite Curve{601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712} = N_ARC;
+Transfinite Curve{801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812} = N_ARC;
+Transfinite Curve{401, 402, 403, 404, 405, 406, 407, 408} = N_RAD1;
+Transfinite Curve{501, 502, 503, 504, 505, 506, 507, 508} = N_RAD2;
+
+// Layer 1 face patches: sphere (curved) and reference cube (flat)
+Line Loop(901) = {601, 602, 603, 604};
+Ruled Surface(1101) = {901};
+Line Loop(1001) = {701, 702, 703, 704};
+Ruled Surface(1201) = {1001};
+Transfinite Surface{1101};  Recombine Surface{1101};
+Transfinite Surface{1201};  Recombine Surface{1201};
+Line Loop(902) = {605, 606, 607, 608};
+Ruled Surface(1102) = {902};
+Line Loop(1002) = {705, 706, 707, 708};
+Ruled Surface(1202) = {1002};
+Transfinite Surface{1102};  Recombine Surface{1102};
+Transfinite Surface{1202};  Recombine Surface{1202};
+Line Loop(903) = {601, 610, -605, -609};
+Ruled Surface(1103) = {903};
+Line Loop(1003) = {701, 710, -705, -709};
+Ruled Surface(1203) = {1003};
+Transfinite Surface{1103};  Recombine Surface{1103};
+Transfinite Surface{1203};  Recombine Surface{1203};
+Line Loop(904) = {-603, 611, 607, -612};
+Ruled Surface(1104) = {904};
+Line Loop(1004) = {-703, 711, 707, -712};
+Ruled Surface(1204) = {1004};
+Transfinite Surface{1104};  Recombine Surface{1104};
+Transfinite Surface{1204};  Recombine Surface{1204};
+Line Loop(905) = {-604, 612, 608, -609};
+Ruled Surface(1105) = {905};
+Line Loop(1005) = {-704, 712, 708, -709};
+Ruled Surface(1205) = {1005};
+Transfinite Surface{1105};  Recombine Surface{1105};
+Transfinite Surface{1205};  Recombine Surface{1205};
+Line Loop(906) = {602, 611, -606, -610};
+Ruled Surface(1106) = {906};
+Line Loop(1006) = {702, 711, -706, -710};
+Ruled Surface(1206) = {1006};
+Transfinite Surface{1106};  Recombine Surface{1106};
+Transfinite Surface{1206};  Recombine Surface{1206};
+
+// Layer 1 fin (side) surfaces, one per cube edge, shared between the
+// two face-blocks meeting at that edge.
+Line Loop(1301) = {601, 402, -701, -401};
+Ruled Surface(1401) = {1301};
+Transfinite Surface{1401};  Recombine Surface{1401};
+Line Loop(1302) = {602, 403, -702, -402};
+Ruled Surface(1402) = {1302};
+Transfinite Surface{1402};  Recombine Surface{1402};
+Line Loop(1303) = {603, 404, -703, -403};
+Ruled Surface(1403) = {1303};
+Transfinite Surface{1403};  Recombine Surface{1403};
+Line Loop(1304) = {604, 401, -704, -404};
+Ruled Surface(1404) = {1304};
+Transfinite Surface{1404};  Recombine Surface{1404};
+Line Loop(1305) = {605, 406, -705, -405};
+Ruled Surface(1405) = {1305};
+Transfinite Surface{1405};  Recombine Surface{1405};
+Line Loop(1306) = {606, 407, -706, -406};
+Ruled Surface(1406) = {1306};
+Transfinite Surface{1406};  Recombine Surface{1406};
+Line Loop(1307) = {607, 408, -707, -407};
+Ruled Surface(1407) = {1307};
+Transfinite Surface{1407};  Recombine Surface{1407};
+Line Loop(1308) = {608, 405, -708, -408};
+Ruled Surface(1408) = {1308};
+Transfinite Surface{1408};  Recombine Surface{1408};
+Line Loop(1309) = {609, 405, -709, -401};
+Ruled Surface(1409) = {1309};
+Transfinite Surface{1409};  Recombine Surface{1409};
+Line Loop(1310) = {610, 406, -710, -402};
+Ruled Surface(1410) = {1310};
+Transfinite Surface{1410};  Recombine Surface{1410};
+Line Loop(1311) = {611, 407, -711, -403};
+Ruled Surface(1411) = {1311};
+Transfinite Surface{1411};  Recombine Surface{1411};
+Line Loop(1312) = {612, 408, -712, -404};
+Ruled Surface(1412) = {1312};
+Transfinite Surface{1412};  Recombine Surface{1412};
+
+// Layer 1 volumes (sphere shell)
+Surface Loop(1501) = {1101, 1201, 1401, 1402, 1403, 1404};
+Volume(1601) = {1501};
+Transfinite Volume{1601};  Recombine Volume{1601};
+Surface Loop(1502) = {1102, 1202, 1405, 1406, 1407, 1408};
+Volume(1602) = {1502};
+Transfinite Volume{1602};  Recombine Volume{1602};
+Surface Loop(1503) = {1103, 1203, 1401, 1410, 1405, 1409};
+Volume(1603) = {1503};
+Transfinite Volume{1603};  Recombine Volume{1603};
+Surface Loop(1504) = {1104, 1204, 1403, 1411, 1407, 1412};
+Volume(1604) = {1504};
+Transfinite Volume{1604};  Recombine Volume{1604};
+Surface Loop(1505) = {1105, 1205, 1404, 1412, 1408, 1409};
+Volume(1605) = {1505};
+Transfinite Volume{1605};  Recombine Volume{1605};
+Surface Loop(1506) = {1106, 1206, 1402, 1411, 1406, 1410};
+Volume(1606) = {1506};
+Transfinite Volume{1606};  Recombine Volume{1606};
+
+// Layer 2 duct-box face patches (flat)
+Line Loop(1701) = {801, 802, 803, 804};
+Ruled Surface(1801) = {1701};
+Transfinite Surface{1801};  Recombine Surface{1801};
+Line Loop(1702) = {805, 806, 807, 808};
+Ruled Surface(1802) = {1702};
+Transfinite Surface{1802};  Recombine Surface{1802};
+Line Loop(1703) = {801, 810, -805, -809};
+Ruled Surface(1803) = {1703};
+Transfinite Surface{1803};  Recombine Surface{1803};
+Line Loop(1704) = {-803, 811, 807, -812};
+Ruled Surface(1804) = {1704};
+Transfinite Surface{1804};  Recombine Surface{1804};
+Line Loop(1705) = {-804, 812, 808, -809};
+Ruled Surface(1805) = {1705};
+Transfinite Surface{1805};  Recombine Surface{1805};
+Line Loop(1706) = {802, 811, -806, -810};
+Ruled Surface(1806) = {1706};
+Transfinite Surface{1806};  Recombine Surface{1806};
+
+// Layer 2 fin surfaces (reference-cube edge -> duct-box edge)
+Line Loop(1901) = {701, 502, -801, -501};
+Ruled Surface(2001) = {1901};
+Transfinite Surface{2001};  Recombine Surface{2001};
+Line Loop(1902) = {702, 503, -802, -502};
+Ruled Surface(2002) = {1902};
+Transfinite Surface{2002};  Recombine Surface{2002};
+Line Loop(1903) = {703, 504, -803, -503};
+Ruled Surface(2003) = {1903};
+Transfinite Surface{2003};  Recombine Surface{2003};
+Line Loop(1904) = {704, 501, -804, -504};
+Ruled Surface(2004) = {1904};
+Transfinite Surface{2004};  Recombine Surface{2004};
+Line Loop(1905) = {705, 506, -805, -505};
+Ruled Surface(2005) = {1905};
+Transfinite Surface{2005};  Recombine Surface{2005};
+Line Loop(1906) = {706, 507, -806, -506};
+Ruled Surface(2006) = {1906};
+Transfinite Surface{2006};  Recombine Surface{2006};
+Line Loop(1907) = {707, 508, -807, -507};
+Ruled Surface(2007) = {1907};
+Transfinite Surface{2007};  Recombine Surface{2007};
+Line Loop(1908) = {708, 505, -808, -508};
+Ruled Surface(2008) = {1908};
+Transfinite Surface{2008};  Recombine Surface{2008};
+Line Loop(1909) = {709, 505, -809, -501};
+Ruled Surface(2009) = {1909};
+Transfinite Surface{2009};  Recombine Surface{2009};
+Line Loop(1910) = {710, 506, -810, -502};
+Ruled Surface(2010) = {1910};
+Transfinite Surface{2010};  Recombine Surface{2010};
+Line Loop(1911) = {711, 507, -811, -503};
+Ruled Surface(2011) = {1911};
+Transfinite Surface{2011};  Recombine Surface{2011};
+Line Loop(1912) = {712, 508, -812, -504};
+Ruled Surface(2012) = {1912};
+Transfinite Surface{2012};  Recombine Surface{2012};
+
+// Layer 2 volumes (reference cube -> duct wall)
+Surface Loop(2101) = {1201, 1801, 2001, 2002, 2003, 2004};
+Volume(2201) = {2101};
+Transfinite Volume{2201};  Recombine Volume{2201};
+Surface Loop(2102) = {1202, 1802, 2005, 2006, 2007, 2008};
+Volume(2202) = {2102};
+Transfinite Volume{2202};  Recombine Volume{2202};
+Surface Loop(2103) = {1203, 1803, 2001, 2010, 2005, 2009};
+Volume(2203) = {2103};
+Transfinite Volume{2203};  Recombine Volume{2203};
+Surface Loop(2104) = {1204, 1804, 2003, 2011, 2007, 2012};
+Volume(2204) = {2104};
+Transfinite Volume{2204};  Recombine Volume{2204};
+Surface Loop(2105) = {1205, 1805, 2004, 2012, 2008, 2009};
+Volume(2205) = {2105};
+Transfinite Volume{2205};  Recombine Volume{2205};
+Surface Loop(2106) = {1206, 1806, 2002, 2011, 2006, 2010};
+Volume(2206) = {2106};
+Transfinite Volume{2206};  Recombine Volume{2206};
+
+Physical Surface("pebble", 1) = {1101, 1102, 1103, 1104, 1105, 1106};
+Physical Surface("inlet", 2) = {1801};
+Physical Surface("outlet", 3) = {1802};
+Physical Surface("duct_wall", 4) = {1803, 1804, 1805, 1806};
+Physical Volume("fluid", 5) = {1601, 1602, 1603, 1604, 1605, 1606, 2201, 2202, 2203, 2204, 2205, 2206};

@@ -1,0 +1,36 @@
+[GENERAL]
+polynomialOrder = 5
+stopAt = numSteps
+numSteps = 5
+
+timeStepper = tombo2
+dt = 1e-2
+checkpointInterval = 5
+
+[PRESSURE]
+solver = PFGMRES + nVector = 30
+initialGuess = projection+nVector=30
+smootherType = FourthChebyshev+jac
+residualTol = 1e-4
+maxIterations = 1000
+
+[VELOCITY]
+# boundaryID 1=hot (inner sphere), 2=cold (outer sphere) -- see usrdat2 in
+# concentric_spheres.usr. Radiation-only verification case (paper Section
+# 4.2), same pattern as parallel_plates_vf: no forced flow, rho/viscosity
+# are placeholders since the paper gives no fluid properties here.
+boundaryTypeMap = wall, wall
+rho = 1.0
+viscosity = 1e-2
+residualTol = 1e-06
+
+[TEMPERATURE]
+rhoCp = 1000.0
+conductivity = 0.01
+# Both boundaries Dirichlet: 1000K (inner/hot), 500K (outer/cold).
+# "udfDirichlet", not "codedFixedValue" -- see the same note in
+# parallel_plates.par about this checked-out NekRS source's actual
+# boundaryTypeMap keyword table.
+boundaryTypeMap = udfDirichlet, udfDirichlet
+residualTol = 1e-06
+maxIterations = 1000
