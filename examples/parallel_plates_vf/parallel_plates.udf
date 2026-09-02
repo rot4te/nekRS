@@ -7,17 +7,17 @@
 
 void UDF_Setup()
 {
-  auto mesh = nrs->mesh;
+  auto mesh = nrs->meshV;
 
-  nrs->o_usrwrk.resize(1*nrs->fieldOffset);
+  platform->app->bc->o_usrwrk.resize(1*nrs->fieldOffset);
 
   std::vector<double> frad(nek::ptr<double>("frad"), nek::ptr<double>("frad") + mesh->Nlocal);
-  nrs->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
+  platform->app->bc->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
 }
 
 void UDF_ExecuteStep(double time, int tstep)
 {
-  auto mesh = nrs->mesh;
+  auto mesh = nrs->meshV;
 
   if (nrs->checkpointStep) {
     nrs->copyToNek(time, tstep);
@@ -34,6 +34,6 @@ void UDF_ExecuteStep(double time, int tstep)
     nek::userchk();
 
     std::vector<double> frad(nek::ptr<double>("frad"), nek::ptr<double>("frad") + mesh->Nlocal);
-    nrs->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
+    platform->app->bc->o_usrwrk.copyFrom(frad, mesh->Nlocal, 0 * nrs->fieldOffset);
   }
 }

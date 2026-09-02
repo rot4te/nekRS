@@ -1,23 +1,25 @@
 // OKL kernels for the parallel-plates Nek-VF verification case.
 // All three boundaries are Dirichlet-temperature literal walls (paper
 // Table I) -- there is no flux/radiative-coupling boundary here, so unlike
-// tall_cavity_vf_aurora's oudf, codedFixedGradientScalar is not needed: the
-// radiative heat flux at each wall is a pure diagnostic read out of
+// tall_cavity_vf_aurora's oudf, udfNeumann is not needed: the radiative
+// heat flux at each wall is a pure diagnostic read out of
 // vf_calculate_radiation_heat_flux via userchk, not fed back into the
-// energy equation as a BC. codedFixedValueVelocity is also unneeded since
-// [VELOCITY] boundaryTypeMap uses the native "wall" (no-slip) type
-// everywhere, not a coded one.
+// energy equation as a BC. [FLUID VELOCITY] boundaryTypeMap uses the
+// native "wall" (no-slip) type everywhere, so udfDirichlet only needs to
+// branch on the scalar field (isField("scalar temperature")).
 
-void codedFixedValueScalar(bcData *bc)
+void udfDirichlet(bcData *bc)
 {
-  // boundaryID 1=hot (1000K), 2=cold (500K), 3=side (750K) -- see usrdat2
-  // in parallel_plates.usr for the Physical Surface -> boundaryID mapping.
-  if (bc->id == 1) {
-    bc->s = 1000.0;
-  } else if (bc->id == 2) {
-    bc->s = 500.0;
-  } else {
-    bc->s = 750.0;
+  if (isField("scalar temperature")) {
+    // boundaryID 1=hot (1000K), 2=cold (500K), 3=side (750K) -- see usrdat2
+    // in parallel_plates.usr for the Physical Surface -> boundaryID mapping.
+    if (bc->id == 1) {
+      bc->sScalar = 1000.0;
+    } else if (bc->id == 2) {
+      bc->sScalar = 500.0;
+    } else {
+      bc->sScalar = 750.0;
+    }
   }
 }
 

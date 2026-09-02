@@ -1,19 +1,22 @@
 // OKL kernels for the concentric-spheres Nek-VF verification case.
 // Both boundaries are Dirichlet-temperature literal walls (paper Table II)
 // -- as in parallel_plates_vf, there is no flux/radiative-coupling
-// boundary, so codedFixedGradientScalar is unneeded: radiative flux is a
-// pure diagnostic read via vf_print_radiation_heat_flux in userchk, not
-// fed back as a BC. codedFixedValueVelocity is also unneeded since
-// [VELOCITY] boundaryTypeMap uses the native "wall" (no-slip) type.
+// boundary, so udfNeumann is unneeded: radiative flux is a pure
+// diagnostic read via vf_print_radiation_heat_flux in userchk, not fed
+// back as a BC. [FLUID VELOCITY] boundaryTypeMap uses the native "wall"
+// (no-slip) type, so udfDirichlet only needs to branch on the scalar
+// field (isField("scalar temperature")).
 
-void codedFixedValueScalar(bcData *bc)
+void udfDirichlet(bcData *bc)
 {
-  // boundaryID 1=hot (inner sphere, 1000K), 2=cold (outer sphere, 500K) --
-  // see usrdat2 in concentric_spheres.usr.
-  if (bc->id == 1) {
-    bc->s = 1000.0;
-  } else {
-    bc->s = 500.0;
+  if (isField("scalar temperature")) {
+    // boundaryID 1=hot (inner sphere, 1000K), 2=cold (outer sphere, 500K)
+    // -- see usrdat2 in concentric_spheres.usr.
+    if (bc->id == 1) {
+      bc->sScalar = 1000.0;
+    } else {
+      bc->sScalar = 500.0;
+    }
   }
 }
 

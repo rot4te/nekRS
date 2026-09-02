@@ -1,0 +1,49 @@
+#[OCCA]
+#backend = CUDA
+#deviceNumber = LOCAL-RANK
+
+[GENERAL]
+#verbose = true
+polynomialOrder =5
+startFrom = tall_cavity0.f00200
+stopAt = numSteps
+numSteps = 4000000
+
+#timeStepper = tombo3
+timeStepper = tombo2
+subCyclingSteps = 2
+
+dt =1e-2
+
+#dt = targetCFL=1.0+ max=1e-4 + initial=1e-6
+
+#checkpointControl = simulationTime 
+#checkpointInterval = 0.1
+checkpointInterval = 1000
+
+#regularization = hpfrt + nModes=1 + scalingCoeff=0.2/${dt}
+#regularization = hpfrt + nModes=1 + scalingCoeff=25000.0
+regularization = explicit + nModes=1 + scalingCoeff=0.1
+
+scalars = temperature
+
+[FLUID PRESSURE]
+solver = GMRES+flexible+nVector=30+maxIter=1000
+initialGuess = projection+nVector=30
+smootherType = FourthChebyshev+jac
+#smootherType = Chebyshev+jac
+residualTol =1e-4
+#initialGuess = previous
+
+[FLUID VELOCITY]
+boundaryTypeMap = wall, wall, wall
+rho = 1.0
+viscosity = -6483.0
+residualTol = 1e-06
+
+[SCALAR TEMPERATURE]
+rhoCp = 1.0
+conductivity = -4602.93
+boundaryTypeMap = flux,udfDirichlet,flux
+residualTol = 1e-06
+

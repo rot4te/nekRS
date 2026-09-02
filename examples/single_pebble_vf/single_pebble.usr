@@ -10,8 +10,9 @@ C-----------------------------------------------------------------------
 
       real eps,sigma,Cp,rho,U0,T0,f0
       real fac0
-      integer option
+      integer option,ntot
 
+      ntot = lx1*ly1*lz1*lelt
       if (istep.eq.0)  call rzero(frad(1,1,1,1),ntot)
       call nekrs_registerPtr('frad', frad)
 

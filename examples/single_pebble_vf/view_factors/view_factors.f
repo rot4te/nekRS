@@ -297,97 +297,155 @@ c and only write at nid=0 processor
 !c-------------------------------------------------------------------
       subroutine vf_read_view_factors(view_factor_file)
 c
-c  read view factor 
+c  read view factor
+c
+c  Only rank 0 touches the filesystem here. Previously every rank
+c  independently opened and fully re-read this same shared file --
+c  a real, if not confirmed as ever-observed, risk under concurrent
+c  access on a parallel filesystem (see changelog.md 2026-09-02/09-03).
+c  Rank 0 now parses the file into flat buffers and bcasts them;
+c  every rank then applies the same gllnid/gllel ownership filter as
+c  before, purely in memory, with no further file I/O.
 c
       include 'SIZE'
       include 'TOTAL'
       include "view_factors/VIEW_FACTORS"
-	  
-      
-	  
+
       character*80 view_factor_file
       character*80 dummyline
 
       integer nwalls,fileid,ivwalls,iw,ieg,ifc,nvwalls,iwall
-      integer jw,jeg,jfc
-      real   view_factor
+      integer jw,jeg,jfc,ntot_visible,ipos
+      real    view_factor
 
-      if (nid.eq.0) then 
+      integer, allocatable :: hdr_iw(:),hdr_ieg(:),hdr_ifc(:),
+     &                         hdr_nvw(:)
+      integer, allocatable :: vjw(:)
+      real,    allocatable :: vvf(:)
+
+      if (nid.eq.0) then
        write(6,*) 'VF:Reading view factor file...'
       endif
-	 
-c reading is parallel
-c so open file for all nid
 
       ierr  = 0
 
-      !view_factor_file =  'view_factors'
-
-      fileid = 511+nid
+      fileid = 511
 
       if (nid.eq.0) then
-      open(unit=fileid,file=view_factor_file,status='old',iostat=ierr)      
-	  if (ierr.gt.0) call exitti('Cannot open view factor file !$',1) 
-      endif
-	
-      if (nid.ne.0)open(unit=fileid,file=view_factor_file,status='old')      
 
-      read(fileid,*) nwalls
+        open(unit=fileid,file=view_factor_file,status='old',
+     &       iostat=ierr)
+        if (ierr.gt.0) call exitti(
+     &       'Cannot open view factor file !$',1)
+
+        read(fileid,*) nwalls
+        write(6,*) 'VF:Reading view factor file: nwalls=',nwalls
+
+        if (nwalls.gt.max_walls) then
+        write(6,*) 'please increase max_walls to ', nwalls
+        endif
+
+c       pass 1: count total visible-wall records so the flat buffers
+c       below can be sized exactly (there is no existing shared max
+c       for this total, unlike max_walls/max_visible_walls per-wall)
+        ntot_visible = 0
+        do iwall = 1,nwalls
+          read(fileid,*) iw,ieg,ifc,nvwalls
+          do ivwalls = 1,nvwalls
+            read(fileid,*) dummyline
+          enddo
+          ntot_visible = ntot_visible+nvwalls
+        enddo
+
+        rewind(fileid)
+        read(fileid,*) nwalls
+
+      endif
+
+      call bcast(nwalls,isize)
+      call bcast(ntot_visible,isize)
+
+      allocate(hdr_iw(nwalls),hdr_ieg(nwalls),hdr_ifc(nwalls),
+     &         hdr_nvw(nwalls))
+      allocate(vjw(ntot_visible),vvf(ntot_visible))
+
       if (nid.eq.0) then
-      write(6,*) 'VF:Reading view factor file: nwalls=',nwalls
-      endif
-	  
-      if ((nwalls.gt.max_walls).and.(nid.eq.0)) then
-      write(6,*) 'please increase max_walls to ', nwalls
-      endif 
 
+c       pass 2: store the actual data this time
+        ipos = 0
+        do iwall = 1,nwalls
+
+          read(fileid,*) iw,ieg,ifc,nvwalls
+          hdr_iw(iwall)  = iw
+          hdr_ieg(iwall) = ieg
+          hdr_ifc(iwall) = ifc
+          hdr_nvw(iwall) = nvwalls
+
+          if (iwall.ne.iw) then
+          write(6,*) 'please check view factor file, something is wrong'
+          write(6,*) 'iwall is ', iwall, ' but iw in vf file is ', iw
+          write(6,*) 'ieg is ', ieg
+          write(6,*) 'ifc is ', ifc
+          write(6,*) 'nvwalls is ', nvwalls
+          endif
+
+          if (nvwalls.gt.max_visible_walls) then
+          write(6,*) 'please increase max_visible_walls to ', nvwalls
+          endif
+
+          do ivwalls = 1,nvwalls
+            read(fileid,*) jw,jeg,jfc,view_factor
+            ipos = ipos+1
+            vjw(ipos) = jw
+            vvf(ipos) = view_factor
+          enddo
+
+        enddo
+
+        close(fileid)
+        write(6,*) 'Done: reading view factor file'
+
+      endif
+
+      call bcast(hdr_iw, nwalls*isize)
+      call bcast(hdr_ieg,nwalls*isize)
+      call bcast(hdr_ifc,nwalls*isize)
+      call bcast(hdr_nvw,nwalls*isize)
+      call bcast(vjw,ntot_visible*isize)
+      call bcast(vvf,ntot_visible*wdsize)
+
+c     every rank applies the ownership filter from the broadcast
+c     buffers, exactly as the old per-rank file read did
       call izero(egf_to_iwall,6*lelg)
 
+      ipos = 0
       do iwall = 1,nwalls
-	  
-        read(fileid,*) iw,ieg,ifc,nvwalls
+
+        iw = hdr_iw(iwall)
+        ieg = hdr_ieg(iwall)
+        ifc = hdr_ifc(iwall)
+        nvwalls = hdr_nvw(iwall)
 
         egf_to_iwall(ifc,ieg) = iw
         iwall_to_eg(iw) = ieg
         iwall_to_f(iw) = ifc
-		
-        if ((iwall.ne.iw).and.(nid.eq.0)) then
-        write(6,*) 'please check view factor file, something is wrong'
-        write(6,*) 'iwall is ', iwall, ' but iw in vf file is ', iw
-        write(6,*) 'ieg is ', ieg
-        write(6,*) 'ifc is ', ifc
-        write(6,*) 'nvwalls is ', nvwalls
-        endif 
 
-        if ((nvwalls.gt.max_visible_walls).and.(nid.eq.0)) then
-        write(6,*) 'please increase max_visible_walls to ', nvwalls
-        endif 
-
-        if (gllnid(ieg).eq.nid) then        ! if this element belong to this nid 
+        if (gllnid(ieg).eq.nid) then
 
           iel=gllel(ieg)
           n_visible_walls(ifc,iel) = nvwalls
           do ivwalls = 1,nvwalls
-          read(fileid,*) jw,jeg,jfc,view_factor
-           view_factor_value(ivwalls,ifc,iel) = view_factor
-           jindex_to_jwall(ivwalls,ifc,iel)=jw
-          enddo
-
-        else
-
-          do ivwalls = 1,nvwalls
-          read(fileid,*) dummyline
+          view_factor_value(ivwalls,ifc,iel) = vvf(ipos+ivwalls)
+          jindex_to_jwall(ivwalls,ifc,iel)   = vjw(ipos+ivwalls)
           enddo
 
         endif
 
-      enddo 
+        ipos = ipos+nvwalls
 
-      close(fileid)
+      enddo
 
-      if (nid.eq.0) then
-      write(6,*) 'Done: reading view factor file'
-      endif
+      deallocate(hdr_iw,hdr_ieg,hdr_ifc,hdr_nvw,vjw,vvf)
 
       vf_crf_firstCalled =1
 

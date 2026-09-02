@@ -9,9 +9,18 @@ set -e
 # radiation-only verification case (4400 hex elements, polynomialOrder=5,
 # numSteps=5), so 1 node and a short walltime are enough -- see
 # procedure.md in this folder.
+#
+# TASKS_PER_NODE default (32) is deliberately far below a full Turin node
+# (192, nrsqsub_teton-2.sh's default): concentric_spheres_vf (1470
+# elements) segfaulted at 192 ranks -- nekRS auto-sized the legacy
+# Nek5000 per-rank element buffer too small for the resulting imbalanced
+# partition. 32 ranks -> ~138 elements/rank here, comfortably safe.
+# Override with TASKS_PER_NODE=<n> if you want more parallelism once this
+# runs cleanly.
 
 : ${PROJ_ID:="art"} # FIXME somehow not used??
 : ${QUEUE:="short"} # short / general
+: ${TASKS_PER_NODE:=32}
 
 : ${NEKRS_HOME:=$HOME/.local/nekrs}
 export NEKRS_HOME
@@ -21,7 +30,7 @@ source $NEKRS_HOME/bin/nrsqsub_utils
 setup $# 1
 
 #cpu_per_node=384
-cpu_per_node=192
+cpu_per_node=$TASKS_PER_NODE
 let nn=$nodes*$cpu_per_node
 let ntasks=nn
 backend=serial
@@ -39,6 +48,7 @@ echo "#SBATCH -N $qnodes" >>$SFILE
 echo "#SBATCH -p $QUEUE" >>$SFILE
 echo "#SBATCH --wckey=${PROJ_ID}" >> $SFILE
 echo "#SBATCH --exclusive" >>$SFILE
+echo "#SBATCH --mem=0" >>$SFILE
 echo "#SBATCH --ntasks-per-node=$cpu_per_node" >>$SFILE
 echo "#SBATCH --cpus-per-task=1" >>$SFILE
 echo "#SBATCH --hint=nomultithread" >>$SFILE

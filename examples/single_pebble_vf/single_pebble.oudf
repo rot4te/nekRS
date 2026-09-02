@@ -2,37 +2,38 @@
 // Flow direction is +z (inlet at z=-Lz, outlet at z=+Lz -- see
 // single_pebble.geo / usrdat2 in single_pebble.usr).
 
-void codedFixedValueVelocity(bcData *bc)
+void udfDirichlet(bcData *bc)
 {
-  // Uniform inlet velocity (boundaryID 2). Re=20 with Table IV's
-  // properties and the duct's 8cm side gives U0 = Re*mu/(rho*L) =
-  // 0.046034 m/s (single_pebble.par's [VELOCITY] comment).
-  bc->u = 0.0;
-  bc->v = 0.0;
-  bc->w = 0.046034;
+  if (isField("fluid velocity")) {
+    // Uniform inlet velocity (boundaryID 2). Re=20 with Table IV's
+    // properties and the duct's 8cm side gives U0 = Re*mu/(rho*L) =
+    // 0.046034 m/s (single_pebble.par's [VELOCITY] comment).
+    bc->uxFluid = 0.0;
+    bc->uyFluid = 0.0;
+    bc->uzFluid = 0.046034;
+  } else if (isField("scalar temperature")) {
+    // Inlet temperature (boundaryID 2): Table IV, Tin = 1000 K.
+    bc->sScalar = 1000.0;
+  }
 }
 
-void codedFixedValueScalar(bcData *bc)
+void udfNeumann(bcData *bc)
 {
-  // Inlet temperature (boundaryID 2): Table IV, Tin = 1000 K.
-  bc->s = 1000.0;
-}
+  if (isField("scalar temperature")) {
+    // bc->usrwrk is frad (view_factors.f's vf_calculate_radiation_heat_flux
+    // output), uploaded from single_pebble.udf. Positive gflux = radiative
+    // loss from this wall into the enclosure (see the tall_cavity_vf_aurora
+    // convention this case reuses).
+    dfloat gflux;
+    gflux = bc->usrwrk[bc->idxVol + 0 * bc->fieldOffset];
 
-void codedFixedGradientScalar(bcData *bc)
-{
-  // bc->usrwrk is frad (view_factors.f's vf_calculate_radiation_heat_flux
-  // output), uploaded from single_pebble.udf. Positive gflux = radiative
-  // loss from this wall into the enclosure (see the tall_cavity_vf_aurora
-  // convention this case reuses).
-  dfloat gflux;
-  gflux = bc->usrwrk[bc->idM + 0 * bc->fieldOffset];
-
-  if (bc->id == 1) {
-    // Pebble (boundaryID 1): Table IV imposed surface heat flux
-    // (374 W/m2, generation into the fluid) plus radiative exchange.
-    bc->flux = 374.0 - gflux;
-  } else {
-    // Duct side walls (boundaryID 4): adiabatic except for radiation.
-    bc->flux = 0.0 - gflux;
+    if (bc->id == 1) {
+      // Pebble (boundaryID 1): Table IV imposed surface heat flux
+      // (374 W/m2, generation into the fluid) plus radiative exchange.
+      bc->fluxScalar = 374.0 - gflux;
+    } else {
+      // Duct side walls (boundaryID 4): adiabatic except for radiation.
+      bc->fluxScalar = 0.0 - gflux;
+    }
   }
 }

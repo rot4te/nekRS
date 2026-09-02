@@ -20,15 +20,26 @@ their separation; the paper's own Nek-VF result (3.92e4 vs. an analytical
 direct hot→cold view factor close to 1.
 
 Since the exact aspect ratio isn't recoverable from the paper text, this
-reproduction uses an assumed 4:1 plate-side-to-spacing ratio (`W=4.0 m`,
-`H=1.0 m` in `parallel_plates.geo`) — large enough to approximate the
-infinite-plate limit while remaining a genuine closed 6-surface enclosure.
-**The resulting Nek-VF flux values will not exactly match Table I** (a
-smaller direct view factor than the paper's implied geometry means somewhat
-more energy is redistributed to/through the side walls); this is a
-documented deviation from the source, not a bug. If the true geometry is
-known, only `W` and `H` in `parallel_plates.geo` need to change — everything
-downstream (mesh, view factors, case files) regenerates unchanged.
+reproduction uses an assumed plate-side-to-spacing ratio in
+`parallel_plates.geo`. **The resulting Nek-VF flux values will not exactly
+match Table I** (a smaller direct view factor than the paper's implied
+geometry means somewhat more energy is redistributed to/through the side
+walls); this is a documented deviation from the source, not a bug. If the
+true geometry is known, only `W` and `H` in `parallel_plates.geo` need to
+change — everything downstream (mesh, view factors, case files) regenerates
+unchanged.
+
+**2026-09-03 update**: the initial `W=4.0 m`/`H=1.0 m` (4:1) ratio turned
+out not to be a good approximation after all — a real run on Teton (see
+`nekRS/changelog.md`, 2026-09-02/09-03) gave side-wall total area
+(`4*W*H=16`) exactly equal to one plate's area (`W*W=16`) at that ratio, and
+deviated from the paper's Table I by ~5.5% on the hot wall but ~25% on the
+cold/side walls. Raised to `W=20.0 m` (20:1, `H` unchanged) to shrink the
+side walls' relative area to 1/5 of a plate's instead of 1×; mesh/view
+factors regenerated accordingly (element count unchanged at 4400 — only
+`W` changed, not `N_W`/`N_H`, so element *size* grew but element *count*
+didn't). Not yet re-run on Teton to confirm improved agreement as of this
+note.
 
 ## File-by-file layout
 
@@ -47,7 +58,7 @@ downstream (mesh, view factors, case files) regenerates unchanged.
 ## How the mesh was generated
 
 ```bash
-/Applications/Gmsh.app/Contents/MacOS/gmsh -3 parallel_plates.geo -o parallel_plates.msh -format msh2
+gmsh -3 parallel_plates.geo -o parallel_plates.msh -format msh2   # any current gmsh (e.g. the "rvf" conda env's) works
 ```
 
 **Gotcha hit and fixed**: a stale global Gmsh GUI preference
@@ -62,13 +73,14 @@ machine should include the same override line** — it's now in all three new
 cases' `.geo` files.
 
 ```bash
-export PATH="/Users/coxea3/opentools/Nek5000/bin:$PATH"
+export PATH="$HOME/Nek5000/bin:$PATH"
 printf "3\nparallel_plates\n0\n0\nparallel_plates\n" | gmsh2nek
 ```
 
 (dimension=3, fluid mesh filename, no solid mesh, 0 periodic pairs, output
-basename) — produced `parallel_plates.re2` (1680 boundary faces: 1 group
-`MSH`, since none of these faces are periodic/internal).
+basename) — produces `parallel_plates.re2` (1680 boundary faces: 1 group
+`MSH`, since none of these faces are periodic/internal; 4400 hex elements,
+unchanged by the 2026-09-03 `W` change above).
 
 ## How view factors were computed
 
@@ -79,11 +91,19 @@ julia -t 8 --project=/Users/coxea3/.julia/dev/RadiativeViewFactor.jl \
   --backend=cpu --monte-carlo=true --n-samples=4000 --nquad=6 --closure-tol=0.1
 ```
 
-Result: row-sum closure error 0.49% max (well within tolerance), reciprocity
-exact to machine precision (3.8e-16). CPU/Monte-Carlo was used since 1680
-elements is small enough that GPU dispatch overhead isn't worth it; this is
-still the same Monte-Carlo-with-near-pair-Duffy-patch kernel the skill
-recommends for larger meshes, just run on CPU.
+Result (original `W=4.0` geometry): row-sum closure error 0.49% max (well
+within tolerance), reciprocity exact to machine precision (3.8e-16).
+Result (2026-09-03 regeneration at `W=20.0`, same command, same mesh
+element count): row-sum closure error 1.88% max, still well within the
+10% tolerance used, reciprocity again exact to machine precision
+(3.05e-16) — the somewhat higher row-sum error is expected on the more
+elongated geometry (larger individual elements relative to plate
+separation) but not a concern at this tolerance.
+
+CPU/Monte-Carlo was used since 1680 elements is small enough that GPU
+dispatch overhead isn't worth it; this is still the same
+Monte-Carlo-with-near-pair-Duffy-patch kernel the skill recommends for
+larger meshes, just run on CPU.
 
 ## How the case files are wired together
 
@@ -115,14 +135,22 @@ The `nekrs_registerPtr('frad', frad)` / `nek::ptr<double>("frad")` bridge,
 see that case's `procedure.md` for the full call-chain trace through
 NekRS's source (`nekInterfaceAdapter.cpp`, `nrs.cpp`).
 
-## Build and run (not yet executed)
+## Build and run
 
 ```bash
 $NEKRS_HOME/bin/nekrs --setup parallel_plates --build-only <ntasks>
 $NEKRS_HOME/bin/nekrs --setup parallel_plates
 ```
 
+(on Teton: `./run_teton.sh parallel_plates 1 00:30`, see `run_teton.sh`.)
+
 Watch for `VF:` log lines from the three `vf_print_radiation_heat_flux`
 calls at `istep=0`'s `userchk` — since wall temperatures are Dirichlet and
 the mesh/view-factor pipeline above is already closure-validated, the flux
 values should stabilize by the first checkpoint (`numSteps=5`).
+
+**Run against the original `W=4.0` geometry** (converged by step 3):
+hot wall 3.7055e4 W/m2, cold wall -2.9741e4 W/m2, side wall -0.7246e4 W/m2
+— see the "2026-09-03 update" note above for how these compare to Table I
+and why `W` was subsequently raised to 20.0. Not yet re-run against the
+new geometry.

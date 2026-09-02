@@ -7,14 +7,15 @@ timeStepper = tombo2
 dt = 1e-2
 checkpointInterval = 5
 
-[PRESSURE]
-solver = PFGMRES + nVector = 30
+scalars = temperature
+
+[FLUID PRESSURE]
+solver = GMRES+flexible+nVector=30+maxIter=1000
 initialGuess = projection+nVector=30
 smootherType = FourthChebyshev+jac
 residualTol = 1e-4
-maxIterations = 1000
 
-[VELOCITY]
+[FLUID VELOCITY]
 # boundaryID 1=hot, 2=cold, 3=side (see usrdat2 in parallel_plates.usr).
 # All three are literal solid walls -- no forced flow in this case, it only
 # exists to drive Nek-VF's radiosity solve with the prescribed wall
@@ -27,7 +28,7 @@ rho = 1.0
 viscosity = 1e-2
 residualTol = 1e-06
 
-[TEMPERATURE]
+[SCALAR TEMPERATURE]
 rhoCp = 1000.0
 conductivity = 0.01
 # All three boundaries are Dirichlet ("udfDirichlet" routes to
@@ -42,4 +43,3 @@ conductivity = 0.01
 # source this case would actually be built against.
 boundaryTypeMap = udfDirichlet, udfDirichlet, udfDirichlet
 residualTol = 1e-06
-maxIterations = 1000

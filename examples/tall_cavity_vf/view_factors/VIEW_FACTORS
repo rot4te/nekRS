@@ -1,0 +1,45 @@
+      parameter(max_walls = 4000000)
+      parameter(max_visible_walls = 10000)
+      parameter(nfe = 2*ldim)
+ 
+      real frad(lx1,ly1,lz1,lelt)      ! radiation heat flux at grid level
+      real frad_ef(max_walls)             ! radiation heat flux at element face level
+      real temp_ef(max_walls)             ! temperature at element face level
+      real indicator_real_wall_ef(max_walls)    ! indicator if this boundaery face is wall or not
+      real Jr(max_walls)    ! radiosity
+      real Gr(max_walls)    ! irradiation
+
+      real farea(nfe,lelt)
+      real fvertice1(3,nfe,lelt)
+      real fvertice2(3,nfe,lelt)
+      real fvertice3(3,nfe,lelt)
+      real fvertice4(3,nfe,lelt)
+      real fnormal(3,nfe,lelt)
+      real fnrmx(lx1,ly1,lz1,lelt)
+      real fnrmy(lx1,ly1,lz1,lelt)
+      real fnrmz(lx1,ly1,lz1,lelt)
+
+      real     view_factor_value(max_visible_walls,6,lelt)      !  view factor of visible faces for this element face
+
+      integer  egf_to_iwall(6,lelg)                          ! from eg and ifc to iwall
+      integer  n_visible_walls(6,lelt)                        !  number of visible faces for this element face
+      integer  jindex_to_jwall(max_visible_walls,6,lelt)      !  view factor of visible faces for this element face
+
+      integer iwall_to_eg(max_walls)
+      integer iwall_to_f(max_walls)
+   
+      integer  vf_crf_firstCalled
+ 
+      real F_sky(max_walls)
+
+      real vf_eps,vf_sigma
+ 
+      common /VIEWFACTORS/ frad,frad_ef,temp_ef,
+     & indicator_real_wall_ef,
+     & Jr,Gr,
+     & farea,fvertice1,fvertice2,fvertice3,fvertice4,fnormal,
+     & fnrmx,fnrmy,fnrmz,
+     & view_factor_value,
+     & egf_to_iwall,n_visible_walls,
+     & jindex_to_jwall,iwall_to_eg,iwall_to_f,
+     & vf_crf_firstCalled,F_sky,vf_eps,vf_sigma

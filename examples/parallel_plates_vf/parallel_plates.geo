@@ -11,7 +11,20 @@ Mesh.SubdivisionAlgorithm = 0;
 // to height ratio is used here to approximate that limit while still being a
 // genuine closed 6-surface enclosure that RadiativeViewFactor.jl computes
 // exact (non-idealized) view factors for.
-W = 4.0;   // plate side length (m) -- assumed, not stated in the paper
+//
+// W/H was originally 4 (W=4.0), which is NOT a good approximation of the
+// idealized limit: side-wall total area (4*W*H) came out exactly equal to
+// one plate's area (W*W) at that ratio, and a run against that mesh
+// deviated from the paper's Table I by ~25% on the cold/side walls (vs
+// ~5.5% on the hot wall). Raised to W/H=20 (2026-09-03) to shrink the
+// side walls' relative contribution to 1/5 of a plate's area instead of
+// 1x -- see nekRS/changelog.md (2026-09-03) for the run that motivated
+// this. N_W/N_H left unchanged: this only changes the physical size of
+// each element, not the element or DoF count (element count is set by the
+// transfinite curve node counts below, independent of W/H) -- polynomial
+// order (case.par) provides the actual within-element resolution, so
+// there's no accuracy reason to also refine the mesh here.
+W = 20.0;  // plate side length (m) -- assumed, not stated in the paper
 H = 1.0;   // plate spacing (m)     -- assumed, not stated in the paper
 N_W = 21;  // nodes across each plate edge
 N_H = 11;  // nodes through the spacing direction
